@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def model_gauss_exp(x, a1, mu1, sigma1, a2, mu2, sigma2, b, k):
     gaussian1 = a1 * np.exp(-((x - mu1) ** 2) / (2 * sigma1 ** 2))
@@ -37,5 +38,53 @@ def log_posterior_probability(params, x, y, sigma_y, model, priors):
     
 def negative_log_posterior(params, x, y, sigma_y, model, priors):
     return -log_posterior_probability(params, x, y, sigma_y, model, priors)
+
+def sample_posterior(x, y, chain, model, seed=15, n_samples=200, plot=True):
+    flat_chain = chain.reshape(-1, chain.shape[-1])
+    chain_samples = flat_chain[np.random.choice(chain.shape[0], size=200)]
+
+    # Evaluate the model at the sample parameters
+    model_predictive = np.array(
+        [model(x, *sample) for sample in chain_samples]
+    )
+    model_quantiles = np.quantile(
+        model_predictive, q=[0.025, 0.16, 0.84, 0.975], axis=0
+    )
+    if plot == True:
+        np.grid()
+        plt.fill_between(x, model_quantiles[0], model_quantiles[-1], alpha=0.5, facecolor="C1",
+                    label="Model predictive distribution")
+        plt.fill_between(x, model_quantiles[1], model_quantiles[-2], alpha=0.5, facecolor="C1")
+        plt.plot(x, y, ".", color = 'black')
+        
+    return model_predictive
+
+def process_chain(chain, discard=0, thin=1, flat=False):
+    """
+    Process an MCMC chain array by discarding initial steps, thinning, and optionally flattening.
+
+    Parameters:
+        chain (np.ndarray): The MCMC chain array with shape (nsteps, nwalkers, ndim).
+        discard (int): Number of initial steps to discard from each walker.
+        thin (int): Interval to keep samples (every 'thin' steps).
+        flat (bool): Whether to flatten the chain across all walkers.
+
+    Returns:
+        np.ndarray: The processed chain array.
+    """
+    # Discard the initial steps
+    if discard > 0:
+        chain = chain[discard:]
     
+    # Apply thinning
+    if thin > 1:
+        chain = chain[::thin]
+
+    # Check if flattening is needed
+    if flat:
+        # Reshape the chain to combine steps and walkers
+        nsteps, nwalkers, ndim = chain.shape
+        chain = chain.reshape(nsteps * nwalkers, ndim)
+
+    return chain
                      

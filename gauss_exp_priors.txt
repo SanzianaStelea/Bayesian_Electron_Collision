@@ -1,0 +1,16 @@
+1
+
+a1_prior = scipy.stats.norm(loc=410, scale=100)
+mu1_prior = scipy.stats.norm(loc=91, scale=10)
+sigma1_prior = scipy.stats.norm(loc=3, scale=3)
+
+a2_prior = scipy.stats.norm(loc=700, scale=200)
+mu2_prior = scipy.stats.norm(loc=15, scale=10)
+sigma2_prior = scipy.stats.norm(loc=7.5, scale=3)
+
+b_prior = scipy.stats.norm(loc=380, scale=150)
+k_prior = scipy.stats.norm(loc=0.025, scale=0.015)
+
+priors = [a1_prior, mu1_prior, sigma1_prior, a2_prior, mu2_prior, sigma2_prior, b_prior, k_prior]
+
+
