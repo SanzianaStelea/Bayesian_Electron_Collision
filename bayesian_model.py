@@ -15,6 +15,15 @@ def model_single_gauss_exp(x, a1, mu1, sigma1, b, k):
     background = b * np.exp(-k * x)
     return gaussian + background
 
+def background_poly3(x, c0, c1, c2, c3):
+    return c0 + c1 * x + c2 * x**2 + c3 * x**3
+
+def gauss_peak(x, a, mu, sigma):
+    return a * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+def model_poly3(x, a, mu, sigma, c0, c1, c2, c3):
+    return gauss_peak(x, a, mu, sigma) + background_poly3(x, c0, c1, c2, c3)
+
 #------------------------------------- LIKELIHOOD FUNCTIONS ----------------------------------
 
 def log_likelihood_probability(x, y, sigma_y, model, params): 
@@ -96,7 +105,7 @@ def negative_log_posterior_heteroscedastic(params, x, y, sigma_y, model, priors)
 
 #############################################################################################
 
-def sample_posterior(x, y, chain, model, seed=15, n_samples=200, plot=True):
+def sample_posterior(x, y, y_errors, chain, model, seed=15, n_samples=200, plot=True, mode='gaussian'):
     
     np.random.seed(seed)
     flat_chain = chain.reshape(-1, chain.shape[-1])
@@ -109,14 +118,46 @@ def sample_posterior(x, y, chain, model, seed=15, n_samples=200, plot=True):
     model_quantiles = np.quantile(
         model_predictive, q=[0.025, 0.16, 0.84, 0.975], axis=0
     )
+        
+    def predict_poisson(params, x):
+        lambda_model = model(x, *params)
+        lambda_model = np.maximum(lambda_model, 0)
+
+        # Draw from the Poisson distribution using the computed lambda
+        return np.random.poisson(lam=lambda_model)
+    
+    def predict_gaussian(params, x, y_errors):
+        prediction = model(x, *params)
+        return np.random.normal(prediction, y_errors)
+
+    if mode == 'poisson':
+        posterior_predictive = np.array(
+            [predict_poisson(sample, x) for sample in chain_samples])
+        
+    elif mode == 'gaussian':
+        posterior_predictive = np.array(
+            [predict_gaussian(sample, x, y_errors) for sample in chain_samples])
+        
+    quantiles = np.percentile(posterior_predictive, [2.5, 16, 84, 97.5], axis=0)
+    
     if plot == True:
+        
         plt.grid()
+        plt.errorbar(x, y, yerr=y_errors, fmt=".", color="b", label="Data", alpha=0.7)
         plt.fill_between(x, model_quantiles[0], model_quantiles[-1], alpha=0.5, facecolor="C1",
                     label="Model predictive distribution")
         plt.fill_between(x, model_quantiles[1], model_quantiles[-2], alpha=0.5, facecolor="C1")
-        plt.plot(x, y, ".", color = 'black')
+        #plt.plot(x, y, ".", color = 'black')
+
+        plt.fill_between(x, quantiles[0], quantiles[-1], alpha=0.5, facecolor="C17",
+                            label="Posterior predictive distribution")
+        plt.fill_between(x, quantiles[1], quantiles[-2], alpha=0.5, facecolor="C17")
+        plt.xlabel('Invariant mass [GeV]')
+        plt.ylabel('Number of events')
+        plt.legend()
         
-    return chain_samples, model_predictive
+    return chain_samples, model_predictive, posterior_predictive
+
 
 def process_chain(chain, discard=0, thin=1, flat=False):
     """
