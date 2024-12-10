@@ -24,6 +24,9 @@ def gauss_peak(x, a, mu, sigma):
 def model_poly3(x, a, mu, sigma, c0, c1, c2, c3):
     return gauss_peak(x, a, mu, sigma) + background_poly3(x, c0, c1, c2, c3)
 
+def background_exp(x, b, k):
+    return b * np.exp(-k * x)
+
 #------------------------------------- LIKELIHOOD FUNCTIONS ----------------------------------
 
 def log_likelihood_probability(x, y, sigma_y, model, params): 
