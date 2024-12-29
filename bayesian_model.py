@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import gammaln
+from scipy.stats import rel_breitwigner
+from scipy.special import erf
+from scipy.signal import convolve
 
 #------------------------------------- MODEL FUNCTIONS ----------------------------------
 
@@ -23,6 +26,71 @@ def gauss_peak(x, a, mu, sigma):
 
 def model_poly3(x, a, mu, sigma, c0, c1, c2, c3):
     return gauss_peak(x, a, mu, sigma) + background_poly3(x, c0, c1, c2, c3)
+
+def background_exp(x, b, k):
+    return b * np.exp(-k * x)
+
+# def crystal_ball(x, a, mu, sigma, alpha, n):
+#     z = (x - mu) / sigma
+#     if alpha < 0:
+#         z = -z
+#     A = (n / np.abs(alpha)) ** n * np.exp(-alpha ** 2 / 2)
+#     B = n / np.abs(alpha) - np.abs(alpha)
+#     C = n / np.abs(alpha) * (1 / (n - 1)) * np.exp(-alpha ** 2 / 2)
+#     D = np.sqrt(np.pi / 2) * (1 + erf(np.abs(alpha) / np.sqrt(2)))
+#     N = 1.0 / (sigma * (C + D))
+#     if z > -alpha:
+#         return a * N * np.exp(-z ** 2 / 2)
+#     else:
+#         return a * N * A * (B - z) ** (-n)
+    
+# def breit_wigner(x, a, mu, gamma):
+#     return a / ((x - mu) ** 2 + (gamma / 2) ** 2)
+
+# Crystal Ball function
+def crystal_ball(x, alpha, n, mean_cb, sigma_cb):
+    """Crystal Ball function with Gaussian core and power-law tail."""
+    # if sigma_cb <= 0 or n <= 0:
+    #     raise ValueError("Sigma and n must be positive.")
+
+    A = (n / abs(alpha)) ** n * np.exp(-alpha**2 / 2)
+    B = n / abs(alpha) - abs(alpha)
+    C = (n / abs(alpha)) * (1 / (n - 1)) * np.exp(-alpha**2 / 2)
+    D = np.sqrt(np.pi / 2) * (1 + erf(alpha / np.sqrt(2)))
+    N = 1 / (sigma_cb * (C + D))
+    
+    z = (x - mean_cb) / sigma_cb
+    return np.where(z > -alpha, N * np.exp(-z**2 / 2), N * A * (B - z)**-n)
+
+# Convolution of Breit-Wigner and Crystal Ball
+def bw_cb_convolution(x, alpha, n, mean_cb, sigma_cb):
+    """Convolve Breit-Wigner with Crystal Ball."""
+    dx = x[1] - x[0]  # Step size
+    x_fine = np.linspace(x[0] - 5 * sigma_cb, x[-1] + 5 * sigma_cb, len(x) * 5)
+    
+    # Relativistic Breit-Wigner (fixed mZ and GammaZ)
+    bw = rel_breitwigner.pdf(x_fine, 91.188, 2.485)
+    
+    # Crystal Ball function
+    cb = crystal_ball(x_fine, alpha, n, mean_cb, sigma_cb)
+    
+    # Perform convolution using scipy's convolve
+    convolved = convolve(bw, cb, mode='same') * dx
+    
+    # Interpolate back to the original x grid
+    return np.interp(x, x_fine, convolved)
+
+# Combined signal + background model
+def signal_model(x, alpha, n, mean_cb, sigma_cb, scale, exp_scale, exp_coeff):
+    """Breit-Wigner ⊗ Crystal Ball + Exponential Background."""
+    # Signal: Convolution of Breit-Wigner and Crystal Ball
+    signal = scale * bw_cb_convolution(x, alpha, n, mean_cb, sigma_cb)
+    
+    # Background: Exponential falling background
+    background = exp_scale * np.exp(-exp_coeff * x)
+    
+    return signal + background
+    
 
 #------------------------------------- LIKELIHOOD FUNCTIONS ----------------------------------
 
