@@ -1,0 +1,16 @@
+bayesian_workflow_gauss_exp_poisson.ipynb
+bayesian_workflow_sanziana.ipynb
+bayesian_workflow_stefan.ipynb
+bayesian_workflow.ipynb
+dielectron.csv
+emcee_chain_breit_wigner_cb_1.npy
+emcee_chain_gauss_exp_30_walker_1.npy
+emcee_chain_gauss_exp_30_walker_2_10k.npy
+emcee_chain_gauss_exp_60_walker_error_2sqrt_10k.npy
+emcee_chain_single_gauss_exp_1.npy
+emcee_chain_single_gauss_poly3.npy
+gauss_exp_priors.txt
+model_1st_skewed_2nd_gauss.ipynb
+perhaps_useful_functions.ipynb
+plotting.py
+trying_poly2_bg.ipynb

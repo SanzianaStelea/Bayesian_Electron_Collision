@@ -60,6 +60,7 @@ def crystal_ball(x, alpha, n, mean_cb, sigma_cb):
     N = 1 / (sigma_cb * (C + D))
     
     z = (x - mean_cb) / sigma_cb
+    
     return np.where(z > -alpha, N * np.exp(-z**2 / 2), N * A * (B - z)**-n)
 
 # Convolution of Breit-Wigner and Crystal Ball
@@ -69,7 +70,7 @@ def bw_cb_convolution(x, alpha, n, mean_cb, sigma_cb):
     x_fine = np.linspace(x[0] - 5 * sigma_cb, x[-1] + 5 * sigma_cb, len(x) * 5)
     
     # Relativistic Breit-Wigner (fixed mZ and GammaZ)
-    bw = rel_breitwigner.pdf(x_fine, 91.188, 2.485)
+    bw = rel_breitwigner.pdf(x_fine, rho=91.188/2.485, scale=2.485)
     
     # Crystal Ball function
     cb = crystal_ball(x_fine, alpha, n, mean_cb, sigma_cb)
